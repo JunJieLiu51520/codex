@@ -9,6 +9,7 @@ use codex_config::ConfigError;
 use codex_config::ConfigLayerEntry;
 use codex_config::ConfigLayerStackOrdering;
 use codex_config::ConfigLoadError;
+use codex_config::ConfigLoadOptions;
 use codex_config::ConfigRequirements;
 use codex_config::ConfigRequirementsToml;
 use codex_config::ConfigRequirementsWithSources;
@@ -155,7 +156,6 @@ invalid = ["#;
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -187,7 +187,6 @@ invalid = ["#,
             ignore_user_config: true,
             ..Default::default()
         },
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -218,7 +217,6 @@ async fn ignore_rules_marks_config_stack_for_exec_policy_rule_skip() -> std::io:
             ignore_user_and_project_exec_policy_rules: true,
             ..Default::default()
         },
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -244,7 +242,6 @@ invalid = ["#;
         Some(cwd),
         &[] as &[(String, TomlValue)],
         overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -296,7 +293,6 @@ async fn top_level_allow_managed_hooks_only_in_user_config_does_not_enable_requi
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -331,7 +327,6 @@ command = "python3 /tmp/user-hook.py"
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -541,7 +536,6 @@ extra = true
         Some(cwd),
         &[] as &[(String, TomlValue)],
         overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -575,7 +569,6 @@ async fn returns_empty_when_all_layers_missing() {
         Some(cwd),
         &[] as &[(String, TomlValue)],
         overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -652,7 +645,6 @@ approval_policy = "on-failure"
         Some(cwd),
         &[] as &[(String, TomlValue)],
         overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -715,7 +707,6 @@ async fn includes_thread_config_layers_in_stack() -> anyhow::Result<()> {
         Some(cwd),
         &[("features.plugins".to_string(), TomlValue::Boolean(true))],
         overrides,
-        CloudConfigBundleLoader::default(),
         &StaticThreadConfigLoader::new(vec![ThreadConfigSource::Session(SessionThreadConfig {
             features: BTreeMap::from([("plugins".to_string(), false)]),
             ..Default::default()
@@ -795,7 +786,6 @@ flag = false
         Some(cwd),
         &[] as &[(String, TomlValue)],
         overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -899,7 +889,6 @@ allowed_sandbox_modes = ["read-only"]
         Some(AbsolutePathBuf::try_from(tmp.path())?),
         &[] as &[(String, TomlValue)],
         loader_overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -961,7 +950,6 @@ allowed_approval_policies = ["never"]
         Some(AbsolutePathBuf::try_from(tmp.path())?),
         &[] as &[(String, TomlValue)],
         loader_overrides,
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1099,10 +1087,13 @@ allowed_approval_policies = ["on-request"]
         tmp.path(),
         Some(AbsolutePathBuf::try_from(tmp.path())?),
         &[] as &[(String, TomlValue)],
-        loader_overrides,
-        CloudConfigBundleFixture::loader_with_enterprise_requirement(
-            r#"allowed_approval_policies = ["never"]"#,
-        ),
+        ConfigLoadOptions {
+            loader_overrides,
+            cloud_config_bundle: CloudConfigBundleFixture::loader_with_enterprise_requirement(
+                r#"allowed_approval_policies = ["never"]"#,
+            ),
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1362,8 +1353,10 @@ async fn load_config_layers_includes_cloud_config_bundle() -> anyhow::Result<()>
         &codex_home,
         Some(cwd),
         &[] as &[(String, TomlValue)],
-        LoaderOverrides::default(),
-        cloud_config_bundle,
+        ConfigLoadOptions {
+            cloud_config_bundle,
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1677,12 +1670,15 @@ review_model = "system-review"
         &codex_home,
         Some(cwd),
         &[] as &[(String, TomlValue)],
-        overrides,
-        CloudConfigBundleFixture::loader_with_enterprise_config(
-            r#"model = "cloud"
+        ConfigLoadOptions {
+            loader_overrides: overrides,
+            cloud_config_bundle: CloudConfigBundleFixture::loader_with_enterprise_config(
+                r#"model = "cloud"
 model_provider = "cloud-provider"
 "#,
-        ),
+            ),
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1792,14 +1788,14 @@ async fn load_config_layers_includes_cloud_hook_requirements() -> anyhow::Result
     let requirements = format!(
         r#"
 [hooks]
-managed_dir = "{}"
+managed_dir = '{}'
 
 [[hooks.PreToolUse]]
 matcher = "^Bash$"
 
 [[hooks.PreToolUse.hooks]]
 type = "command"
-command = "python3 {}/pre.py"
+command = 'python3 {}/pre.py'
 timeout = 10
 statusMessage = "checking"
 "#,
@@ -1815,8 +1811,10 @@ statusMessage = "checking"
         &codex_home,
         Some(cwd),
         &[] as &[(String, TomlValue)],
-        LoaderOverrides::default(),
-        cloud_config_bundle,
+        ConfigLoadOptions {
+            cloud_config_bundle,
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1832,6 +1830,88 @@ statusMessage = "checking"
     );
 
     Ok(())
+}
+
+#[tokio::test]
+async fn load_config_layers_resolves_relative_cloud_requirements_paths_against_codex_home()
+-> anyhow::Result<()> {
+    let tmp = tempdir()?;
+    let codex_home = tmp.path().join("home");
+    tokio::fs::create_dir_all(&codex_home).await?;
+    let cwd = AbsolutePathBuf::from_absolute_path(tmp.path())?;
+
+    let requirements = r#"
+[permissions.filesystem]
+deny_read = ["secrets/**"]
+"#;
+    let cloud_config_bundle =
+        CloudConfigBundleFixture::loader_with_enterprise_requirement(requirements);
+
+    let layers = load_config_layers_state(
+        LOCAL_FS.as_ref(),
+        &codex_home,
+        Some(cwd),
+        &[] as &[(String, TomlValue)],
+        ConfigLoadOptions {
+            loader_overrides: LoaderOverrides::without_managed_config_for_tests(),
+            cloud_config_bundle,
+            ..Default::default()
+        },
+        &codex_config::NoopThreadConfigLoader,
+    )
+    .await?;
+
+    let permissions = layers
+        .requirements_toml()
+        .permissions
+        .clone()
+        .expect("permissions requirements should load");
+    let filesystem = permissions
+        .filesystem
+        .expect("filesystem requirements should load");
+
+    assert_eq!(
+        filesystem.deny_read,
+        Some(vec![
+            FilesystemDenyReadPattern::from_input(&format!("{}/secrets/**", codex_home.display()))
+                .expect("cloud requirements path should resolve against codex_home")
+        ])
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn strict_config_rejects_unknown_cloud_config_key() {
+    let tmp = tempdir().expect("tempdir");
+    let codex_home = tmp.path().join("home");
+    tokio::fs::create_dir_all(&codex_home)
+        .await
+        .expect("create codex home");
+    let cwd = AbsolutePathBuf::from_absolute_path(tmp.path()).expect("cwd");
+
+    let err = load_config_layers_state(
+        LOCAL_FS.as_ref(),
+        &codex_home,
+        Some(cwd),
+        &[] as &[(String, TomlValue)],
+        ConfigLoadOptions {
+            loader_overrides: LoaderOverrides::without_managed_config_for_tests(),
+            strict_config: true,
+            cloud_config_bundle: CloudConfigBundleFixture::loader_with_enterprise_config(
+                "unknown_key = true",
+            ),
+        },
+        &codex_config::NoopThreadConfigLoader,
+    )
+    .await
+    .expect_err("strict config should reject unknown cloud config keys");
+
+    assert!(
+        err.to_string()
+            .contains("unknown configuration field `unknown_key`"),
+        "{err:?}"
+    );
 }
 
 #[tokio::test]
@@ -1855,8 +1935,10 @@ async fn load_config_layers_applies_matching_remote_sandbox_config() -> anyhow::
         &codex_home,
         Some(cwd),
         &[] as &[(String, TomlValue)],
-        LoaderOverrides::default(),
-        cloud_config_bundle,
+        ConfigLoadOptions {
+            cloud_config_bundle,
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -1891,14 +1973,16 @@ async fn load_config_layers_fails_when_cloud_config_bundle_loader_fails() -> any
         &codex_home,
         Some(cwd),
         &[] as &[(String, TomlValue)],
-        LoaderOverrides::default(),
-        CloudConfigBundleLoader::new(async {
-            Err(CloudConfigBundleLoadError::new(
-                codex_config::CloudConfigBundleLoadErrorCode::RequestFailed,
-                /*status_code*/ None,
-                "cloud config bundle failed",
-            ))
-        }),
+        ConfigLoadOptions {
+            cloud_config_bundle: CloudConfigBundleLoader::new(async {
+                Err(CloudConfigBundleLoadError::new(
+                    codex_config::CloudConfigBundleLoadErrorCode::RequestFailed,
+                    /*status_code*/ None,
+                    "cloud config bundle failed",
+                ))
+            }),
+            ..Default::default()
+        },
         &codex_config::NoopThreadConfigLoader,
     )
     .await
@@ -1948,7 +2032,6 @@ async fn project_layers_prefer_closest_cwd() -> std::io::Result<()> {
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2031,7 +2114,6 @@ async fn linked_worktree_project_layers_keep_worktree_config_but_use_root_repo_h
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2113,7 +2195,6 @@ async fn linked_worktree_project_layers_use_root_repo_hooks_without_worktree_con
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2184,7 +2265,6 @@ async fn nested_project_root_markers_do_not_redirect_regular_repo_hooks() -> std
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2372,7 +2452,6 @@ async fn project_layer_is_added_when_dot_codex_exists_without_config_toml() -> s
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2413,7 +2492,6 @@ async fn codex_home_is_not_loaded_as_project_layer_from_home_dir() -> std::io::R
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2479,7 +2557,6 @@ async fn codex_home_within_project_tree_is_not_double_loaded() -> std::io::Resul
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2555,7 +2632,6 @@ profile = "ignored"
         Some(cwd.clone()),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2602,7 +2678,6 @@ profile = "ignored"
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2691,7 +2766,6 @@ wire_api = "responses"
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2793,7 +2867,6 @@ async fn project_trust_does_not_match_configured_alias_for_canonical_cwd() -> st
         Some(AbsolutePathBuf::from_absolute_path(&project_root)?),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -2959,7 +3032,6 @@ async fn invalid_project_config_ignored_when_untrusted_or_unknown() -> std::io::
             Some(cwd.clone()),
             &[] as &[(String, TomlValue)],
             LoaderOverrides::default(),
-            CloudConfigBundleLoader::default(),
             &codex_config::NoopThreadConfigLoader,
         )
         .await?;
@@ -3028,7 +3100,6 @@ async fn project_layer_without_config_toml_is_disabled_when_untrusted_or_unknown
             Some(cwd.clone()),
             &[] as &[(String, TomlValue)],
             LoaderOverrides::default(),
-            CloudConfigBundleLoader::default(),
             &codex_config::NoopThreadConfigLoader,
         )
         .await?;
@@ -3089,7 +3160,6 @@ async fn cli_overrides_with_relative_paths_do_not_break_trust_check() -> std::io
         Some(cwd),
         &cli_overrides,
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;
@@ -3135,7 +3205,6 @@ async fn project_root_markers_supports_alternate_markers() -> std::io::Result<()
         Some(cwd),
         &[] as &[(String, TomlValue)],
         LoaderOverrides::default(),
-        CloudConfigBundleLoader::default(),
         &codex_config::NoopThreadConfigLoader,
     )
     .await?;

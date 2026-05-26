@@ -6,9 +6,9 @@ mod tests;
 
 use self::layer_io::LoadedConfigLayers;
 use crate::CONFIG_TOML_FILE;
-use crate::CloudConfigBundleLoader;
 use crate::ProfileV2Name;
 use crate::cloud_config_layers_from_fragments;
+use crate::cloud_config_layers_from_fragments_strict;
 use crate::compose_cloud_requirements;
 use crate::config_requirements::ConfigRequirementsToml;
 use crate::config_requirements::ConfigRequirementsWithSources;
@@ -117,12 +117,12 @@ pub async fn load_config_layers_state(
     cwd: Option<AbsolutePathBuf>,
     cli_overrides: &[(String, TomlValue)],
     options: impl Into<ConfigLoadOptions>,
-    cloud_config_bundle: CloudConfigBundleLoader,
     thread_config_loader: &dyn ThreadConfigLoader,
 ) -> io::Result<ConfigLayerStack> {
     let ConfigLoadOptions {
         loader_overrides: overrides,
         strict_config,
+        cloud_config_bundle,
     } = options.into();
     let active_user_profile = overrides.user_config_profile.clone();
     let ignore_managed_requirements = overrides.ignore_managed_requirements;
@@ -134,17 +134,26 @@ pub async fn load_config_layers_state(
 
     if !ignore_managed_requirements {
         if let Some(bundle) = cloud_config_bundle.get().await.map_err(io::Error::other)? {
-            if let Some(requirements) =
+            let cloud_config_base_dir = AbsolutePathBuf::from_absolute_path(codex_home)?;
+            let requirements = {
+                let _guard = AbsolutePathBufGuard::new(cloud_config_base_dir.as_path());
                 compose_cloud_requirements(bundle.requirements_toml.enterprise_managed)?
-            {
+            };
+            if let Some(requirements) = requirements {
                 config_requirements_toml = requirements;
             }
 
-            let cloud_config_base_dir = AbsolutePathBuf::from_absolute_path(codex_home)?;
-            cloud_config_layers = cloud_config_layers_from_fragments(
-                bundle.config_toml.enterprise_managed,
-                &cloud_config_base_dir,
-            )?;
+            cloud_config_layers = if strict_config {
+                cloud_config_layers_from_fragments_strict(
+                    bundle.config_toml.enterprise_managed,
+                    &cloud_config_base_dir,
+                )?
+            } else {
+                cloud_config_layers_from_fragments(
+                    bundle.config_toml.enterprise_managed,
+                    &cloud_config_base_dir,
+                )?
+            };
         }
 
         #[cfg(target_os = "macos")]

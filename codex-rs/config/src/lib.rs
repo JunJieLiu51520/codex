@@ -42,6 +42,7 @@ pub use cloud_config_layers::CloudConfigFragment;
 pub use cloud_config_layers::CloudConfigFragmentSource;
 pub use cloud_config_layers::CloudConfigLayerError;
 pub use cloud_config_layers::cloud_config_layers_from_fragments;
+pub use cloud_config_layers::cloud_config_layers_from_fragments_strict;
 pub use cloud_requirements_composition::CloudRequirementsCompositionError;
 pub use cloud_requirements_composition::CloudRequirementsFragment;
 pub use cloud_requirements_composition::CloudRequirementsFragmentSource;

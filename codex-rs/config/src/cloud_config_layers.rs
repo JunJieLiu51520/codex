@@ -1,12 +1,16 @@
 use crate::ConfigLayerEntry;
 use crate::ConfigLayerSource;
 use crate::TomlValue;
+use crate::config_toml::ConfigToml;
 use crate::loader::resolve_relative_paths_in_config_toml;
+use crate::strict_config::config_error_from_ignored_toml_value_fields;
 use codex_utils_absolute_path::AbsolutePathBuf;
+use codex_utils_absolute_path::AbsolutePathBufGuard;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 use std::io;
+use std::path::Path;
 use thiserror::Error;
 
 /// Config fragment delivered by the cloud config bundle.
@@ -60,6 +64,27 @@ pub fn cloud_config_layers_from_fragments(
     fragments: impl IntoIterator<Item = CloudConfigFragment>,
     base_dir: &AbsolutePathBuf,
 ) -> Result<Vec<ConfigLayerEntry>, CloudConfigLayerError> {
+    cloud_config_layers_from_fragments_impl(fragments, base_dir, StrictConfigValidation::Disabled)
+}
+
+pub fn cloud_config_layers_from_fragments_strict(
+    fragments: impl IntoIterator<Item = CloudConfigFragment>,
+    base_dir: &AbsolutePathBuf,
+) -> Result<Vec<ConfigLayerEntry>, CloudConfigLayerError> {
+    cloud_config_layers_from_fragments_impl(fragments, base_dir, StrictConfigValidation::Enabled)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StrictConfigValidation {
+    Disabled,
+    Enabled,
+}
+
+fn cloud_config_layers_from_fragments_impl(
+    fragments: impl IntoIterator<Item = CloudConfigFragment>,
+    base_dir: &AbsolutePathBuf,
+    strict_config_validation: StrictConfigValidation,
+) -> Result<Vec<ConfigLayerEntry>, CloudConfigLayerError> {
     let mut layers = Vec::new();
     for fragment in fragments {
         let source_ref = fragment.source_ref();
@@ -69,6 +94,20 @@ pub fn cloud_config_layers_from_fragments(
                 fragment: source_ref.clone(),
                 message: err.to_string(),
             })?;
+        if strict_config_validation == StrictConfigValidation::Enabled {
+            let _guard = AbsolutePathBufGuard::new(base_dir.as_path());
+            let source_name = source_ref.to_string();
+            if let Some(config_error) = config_error_from_ignored_toml_value_fields::<ConfigToml>(
+                Path::new(&source_name),
+                &raw_toml,
+                value.clone(),
+            ) {
+                return Err(CloudConfigLayerError::Invalid {
+                    fragment: source_ref,
+                    message: config_error.message,
+                });
+            }
+        }
         let resolved =
             resolve_relative_paths_in_config_toml(value, base_dir.as_path()).map_err(|err| {
                 CloudConfigLayerError::Invalid {
