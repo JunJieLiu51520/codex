@@ -76,6 +76,13 @@
       "oneOf": [
         {
           "properties": {
+            "clientId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "text": {
               "type": "string"
             },
@@ -104,6 +111,13 @@
         },
         {
           "properties": {
+            "clientId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "detail": {
               "anyOf": [
                 {
@@ -135,6 +149,13 @@
         },
         {
           "properties": {
+            "clientId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "detail": {
               "anyOf": [
                 {
@@ -166,6 +187,13 @@
         },
         {
           "properties": {
+            "clientId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "name": {
               "type": "string"
             },
@@ -190,6 +218,13 @@
         },
         {
           "properties": {
+            "clientId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "name": {
               "type": "string"
             },
