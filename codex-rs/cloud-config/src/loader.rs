@@ -192,7 +192,7 @@ where
                     self.timeout.as_secs()
                 );
                 tracing::error!("{message}");
-                emit_load_metric("startup", "error", None);
+                emit_load_metric("startup", "error", /*bundle*/ None);
             })
             .map_err(|_| {
                 CloudConfigBundleLoadError::new(
@@ -208,7 +208,7 @@ where
         let result = match fetch_result {
             Ok(result) => result,
             Err(err) => {
-                emit_load_metric("startup", "error", None);
+                emit_load_metric("startup", "error", /*bundle*/ None);
                 return Err(err);
             }
         };
@@ -228,7 +228,7 @@ where
                     elapsed_ms = started_at.elapsed().as_millis(),
                     "Cloud config bundle load completed (none)"
                 );
-                emit_load_metric("startup", "success", None);
+                emit_load_metric("startup", "success", /*bundle*/ None);
             }
         }
 
@@ -321,7 +321,7 @@ where
                                         "auth_recovery_missing_auth",
                                         attempt,
                                         status_code,
-                                        None,
+                                        /*bundle*/ None,
                                     );
                                     return Err(CloudConfigBundleLoadError::new(
                                         CloudConfigBundleLoadErrorCode::Auth,
@@ -343,7 +343,7 @@ where
                                     "auth_recovery_unrecoverable",
                                     attempt,
                                     status_code,
-                                    None,
+                                    /*bundle*/ None,
                                 );
                                 return Err(CloudConfigBundleLoadError::new(
                                     CloudConfigBundleLoadErrorCode::Auth,
@@ -377,7 +377,7 @@ where
                         "auth_recovery_unavailable",
                         attempt,
                         status_code,
-                        None,
+                        /*bundle*/ None,
                     );
                     return Err(CloudConfigBundleLoadError::new(
                         CloudConfigBundleLoadErrorCode::Auth,
@@ -399,7 +399,14 @@ where
                 );
             }
 
-            emit_fetch_final_metric(trigger, "success", "none", attempt, None, Some(&bundle));
+            emit_fetch_final_metric(
+                trigger,
+                "success",
+                "none",
+                attempt,
+                /*status_code*/ None,
+                Some(&bundle),
+            );
             return Ok(optional_bundle(bundle));
         }
 
@@ -409,7 +416,7 @@ where
             "request_retry_exhausted",
             CLOUD_CONFIG_BUNDLE_MAX_ATTEMPTS,
             last_status_code,
-            None,
+            /*bundle*/ None,
         );
         tracing::error!(
             path = %self.cache.path().display(),
@@ -432,7 +439,7 @@ where
                     tracing::error!(
                         "Timed out refreshing cloud config bundle cache from remote; keeping existing cache"
                     );
-                    emit_load_metric("refresh", "error", None);
+                    emit_load_metric("refresh", "error", /*bundle*/ None);
                 }
             }
         }
@@ -454,7 +461,7 @@ where
                     error = %err,
                     "Failed to refresh cloud config bundle cache from remote"
                 );
-                emit_load_metric("refresh", "error", None);
+                emit_load_metric("refresh", "error", /*bundle*/ None);
             }
         }
         true
@@ -939,7 +946,7 @@ mod tests {
 
     #[test]
     fn bundle_shape_tag_describes_sorted_enterprise_sources() {
-        assert_eq!(bundle_shape_tag(None), "none");
+        assert_eq!(bundle_shape_tag(/*bundle*/ None), "none");
         assert_eq!(
             bundle_shape_tag(Some(&CloudConfigBundle::default())),
             "empty"
