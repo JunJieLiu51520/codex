@@ -51,12 +51,14 @@ mod doctor;
 mod marketplace_cmd;
 mod mcp_cmd;
 mod plugin_cmd;
+mod sandbox_setup;
 #[cfg(not(windows))]
 mod wsl_paths;
 
 use crate::mcp_cmd::McpCli;
 use crate::plugin_cmd::PluginCli;
 use crate::plugin_cmd::PluginSubcommand;
+use crate::sandbox_setup::SandboxSetupCommand;
 use doctor::DoctorCommand;
 
 use codex_config::LoaderOverrides;
@@ -344,6 +346,9 @@ struct SandboxArgs {
 
 #[derive(Debug, clap::Subcommand)]
 enum SandboxCommand {
+    /// Set up the Windows elevated sandbox.
+    Setup(SandboxSetupCommand),
+
     /// Run a command under Seatbelt (macOS only).
     #[clap(visible_alias = "seatbelt")]
     Macos(SeatbeltCommand),
@@ -1244,6 +1249,14 @@ async fn cli_main(arg0_paths: Arg0DispatchPaths) -> anyhow::Result<()> {
                 .await?;
         }
         Some(Subcommand::Sandbox(sandbox_args)) => match sandbox_args.cmd {
+            SandboxCommand::Setup(setup_cli) => {
+                reject_remote_mode_for_subcommand(
+                    root_remote.as_deref(),
+                    root_remote_auth_token_env.as_deref(),
+                    "sandbox setup",
+                )?;
+                sandbox_setup::run(setup_cli).await?;
+            }
             SandboxCommand::Macos(mut seatbelt_cli) => {
                 reject_remote_mode_for_subcommand(
                     root_remote.as_deref(),

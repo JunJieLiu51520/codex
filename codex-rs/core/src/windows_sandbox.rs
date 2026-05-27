@@ -192,6 +192,11 @@ pub fn run_elevated_setup(
     )
 }
 
+#[cfg(target_os = "windows")]
+pub fn run_elevated_provisioning_setup(codex_home: &Path, real_user: &str) -> anyhow::Result<()> {
+    codex_windows_sandbox::run_elevated_provisioning_setup(codex_home, real_user)
+}
+
 #[cfg(not(target_os = "windows"))]
 pub fn run_elevated_setup(
     _policy: &SandboxPolicy,
@@ -200,6 +205,11 @@ pub fn run_elevated_setup(
     _env_map: &HashMap<String, String>,
     _codex_home: &Path,
 ) -> anyhow::Result<()> {
+    anyhow::bail!("elevated Windows sandbox setup is only supported on Windows")
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn run_elevated_provisioning_setup(_codex_home: &Path, _real_user: &str) -> anyhow::Result<()> {
     anyhow::bail!("elevated Windows sandbox setup is only supported on Windows")
 }
 
