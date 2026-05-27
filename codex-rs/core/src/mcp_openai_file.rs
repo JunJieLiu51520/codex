@@ -249,7 +249,7 @@ mod tests {
             "file",
             /*index*/ None,
             "file_report.csv",
-            /* store_in_library */ true,
+            /*store_in_library*/ true,
         )
         .await
         .expect("rewrite should upload the local file");
@@ -332,7 +332,7 @@ mod tests {
             Some(&auth),
             "file",
             &serde_json::json!("file_report.csv"),
-            /* store_in_library */ false,
+            /*store_in_library*/ false,
         )
         .await
         .expect("rewrite should succeed");
@@ -450,7 +450,7 @@ mod tests {
             Some(&auth),
             "files",
             &serde_json::json!(["one.csv", "two.csv"]),
-            /* store_in_library */ false,
+            /*store_in_library*/ false,
         )
         .await
         .expect("rewrite should succeed");
