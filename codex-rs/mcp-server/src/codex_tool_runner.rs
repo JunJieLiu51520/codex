@@ -110,6 +110,7 @@ pub async fn run_codex_tool_session(
         op: Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: initial_prompt.clone(),
                 // MCP tool prompts are plain text with no UI element ranges.
                 text_elements: Vec::new(),
@@ -161,6 +162,7 @@ pub async fn run_codex_tool_session_reply(
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: prompt,
                 // MCP tool prompts are plain text with no UI element ranges.
                 text_elements: Vec::new(),

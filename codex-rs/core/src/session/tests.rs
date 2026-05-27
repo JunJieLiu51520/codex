@@ -2282,6 +2282,7 @@ async fn fork_startup_context_then_first_turn_diff_snapshot() -> anyhow::Result<
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "fork seed".into(),
                 text_elements: Vec::new(),
             }],
@@ -2329,6 +2330,7 @@ async fn fork_startup_context_then_first_turn_diff_snapshot() -> anyhow::Result<
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "after fork".into(),
                 text_elements: Vec::new(),
             }],
@@ -5464,6 +5466,7 @@ async fn user_turn_updates_approvals_reviewer() {
         "sub-1".to_string(),
         Op::UserInput {
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "hello".to_string(),
                 text_elements: Vec::new(),
             }],
@@ -5793,6 +5796,7 @@ async fn spawn_task_turn_span_inherits_dispatch_trace_context() {
         sess.spawn_task(
             Arc::clone(&tc),
             vec![TurnInput::UserInput(vec![UserInput::Text {
+                client_id: None,
                 text: "hello".to_string(),
                 text_elements: Vec::new(),
             }])],
@@ -6605,6 +6609,7 @@ async fn spawn_task_does_not_update_previous_turn_settings_for_non_run_turn_task
     sess.set_previous_turn_settings(/*previous_turn_settings*/ None)
         .await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -7874,6 +7879,7 @@ impl SessionTask for GuardianDeniedApprovalTask {
 async fn guardian_auto_review_interrupts_after_three_consecutive_denials() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "trigger guardian denials".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -7905,6 +7911,7 @@ async fn guardian_auto_review_interrupts_after_three_consecutive_denials() {
 async fn guardian_helper_review_interrupts_after_three_consecutive_denials() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "keep turn active for helper reviews".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -7965,6 +7972,7 @@ async fn guardian_helper_review_interrupts_after_three_consecutive_denials() {
 async fn abort_regular_task_emits_turn_aborted_only() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -7998,6 +8006,7 @@ async fn abort_regular_task_emits_turn_aborted_only() {
 async fn abort_gracefully_emits_turn_aborted_only() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -8031,6 +8040,7 @@ async fn abort_gracefully_emits_turn_aborted_only() {
 async fn task_finish_emits_turn_item_lifecycle_for_leftover_pending_user_input() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -8051,6 +8061,7 @@ async fn task_finish_emits_turn_item_lifecycle_for_leftover_pending_user_input()
         Some("pending marker".to_string()),
     );
     let pending_user_input = vec![UserInput::Text {
+        client_id: None,
         text: "late pending input".to_string(),
         text_elements: vec![text_element.clone()],
     }];
@@ -8147,6 +8158,7 @@ async fn task_finish_emits_turn_item_lifecycle_for_leftover_pending_user_input()
 async fn steer_input_requires_active_turn() {
     let (sess, _tc, _rx) = make_session_and_context_with_rx().await;
     let input = vec![UserInput::Text {
+        client_id: None,
         text: "steer".to_string(),
         text_elements: Vec::new(),
     }];
@@ -8168,6 +8180,7 @@ async fn steer_input_requires_active_turn() {
 async fn steer_input_enforces_expected_turn_id() {
     let (sess, tc, _rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -8182,6 +8195,7 @@ async fn steer_input_enforces_expected_turn_id() {
     .await;
 
     let steer_input = vec![UserInput::Text {
+        client_id: None,
         text: "steer".to_string(),
         text_elements: Vec::new(),
     }];
@@ -8214,6 +8228,7 @@ async fn steer_input_rejects_non_regular_turns() {
     ] {
         let (sess, _tc, _rx) = make_session_and_context_with_rx().await;
         let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+            client_id: None,
             text: "hello".to_string(),
             text_elements: Vec::new(),
         }])];
@@ -8229,6 +8244,7 @@ async fn steer_input_rejects_non_regular_turns() {
         .await;
 
         let steer_input = vec![UserInput::Text {
+            client_id: None,
             text: "steer".to_string(),
             text_elements: Vec::new(),
         }];
@@ -8252,6 +8268,7 @@ async fn steer_input_rejects_non_regular_turns() {
 async fn steer_input_returns_active_turn_id() {
     let (sess, tc, _rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "hello".to_string(),
         text_elements: Vec::new(),
     }])];
@@ -8266,6 +8283,7 @@ async fn steer_input_returns_active_turn_id() {
     .await;
 
     let steer_input = vec![UserInput::Text {
+        client_id: None,
         text: "steer".to_string(),
         text_elements: Vec::new(),
     }];
@@ -8492,6 +8510,7 @@ async fn active_goal_continuation_runs_again_after_no_tool_turn() -> anyhow::Res
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "write a benchmark note".into(),
                 text_elements: Vec::new(),
             }],
@@ -8598,6 +8617,7 @@ async fn pending_request_user_input_does_not_spawn_extra_goal_continuation() -> 
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "write a benchmark note".into(),
                 text_elements: Vec::new(),
             }],
@@ -9146,6 +9166,7 @@ async fn completed_goal_accounts_current_turn_tokens_before_tool_response() -> a
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: "write a report".into(),
                 text_elements: Vec::new(),
             }],
@@ -9315,6 +9336,7 @@ async fn steered_input_reopens_mailbox_delivery_for_current_turn() {
         .await;
     sess.steer_input(
         vec![UserInput::Text {
+            client_id: None,
             text: "follow up".to_string(),
             text_elements: Vec::new(),
         }],
@@ -9329,6 +9351,7 @@ async fn steered_input_reopens_mailbox_delivery_for_current_turn() {
         sess.input_queue.get_pending_input(&sess.active_turn).await,
         vec![
             TurnInput::UserInput(vec![UserInput::Text {
+                client_id: None,
                 text: "follow up".to_string(),
                 text_elements: Vec::new(),
             }]),
@@ -9365,6 +9388,7 @@ async fn stale_defer_mailbox_delivery_does_not_override_steered_input() {
         .await;
     sess.steer_input(
         vec![UserInput::Text {
+            client_id: None,
             text: "follow up".to_string(),
             text_elements: Vec::new(),
         }],
@@ -9383,6 +9407,7 @@ async fn stale_defer_mailbox_delivery_does_not_override_steered_input() {
         sess.input_queue.get_pending_input(&sess.active_turn).await,
         vec![
             TurnInput::UserInput(vec![UserInput::Text {
+                client_id: None,
                 text: "follow up".to_string(),
                 text_elements: Vec::new(),
             }]),
@@ -9451,6 +9476,7 @@ async fn tool_calls_reopen_mailbox_delivery_for_current_turn() {
 async fn abort_review_task_emits_exited_then_aborted_and_records_history() {
     let (sess, tc, rx) = make_session_and_context_with_rx().await;
     let input = vec![TurnInput::UserInput(vec![UserInput::Text {
+        client_id: None,
         text: "start review".to_string(),
         text_elements: Vec::new(),
     }])];

@@ -778,6 +778,7 @@ async fn user_turn(conversation: &Arc<CodexThread>, text: &str) {
         .submit(Op::UserInput {
             environments: None,
             items: vec![UserInput::Text {
+                client_id: None,
                 text: text.into(),
                 text_elements: Vec::new(),
             }],

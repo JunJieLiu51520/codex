@@ -1092,6 +1092,7 @@ impl Session {
             Op::UserInput {
                 environments: None,
                 items: vec![UserInput::Text {
+                    client_id: None,
                     text,
                     text_elements: Vec::new(),
                 }],
