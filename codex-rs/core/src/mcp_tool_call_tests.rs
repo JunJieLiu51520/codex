@@ -342,15 +342,36 @@ fn mcp_app_resource_uri_reads_known_tool_meta_keys() {
 fn openai_file_params_are_only_honored_for_codex_apps() {
     let meta = serde_json::json!({
         "openai/fileParams": ["file"],
+        "openai/fileUploadConfig": {
+            "store_in_library": true,
+        },
     });
     let meta = meta.as_object();
 
     assert_eq!(
         openai_file_input_params_for_server(CODEX_APPS_MCP_SERVER_NAME, meta),
-        Some(vec!["file".to_string()])
+        Some(OpenAiFileInputParams {
+            names: vec!["file".to_string()],
+            store_in_library: true,
+        })
     );
     assert_eq!(
         openai_file_input_params_for_server("minimaltest", meta),
+        None
+    );
+}
+
+#[test]
+fn openai_file_upload_config_requires_file_params() {
+    let meta = serde_json::json!({
+        "openai/fileUploadConfig": {
+            "store_in_library": true,
+        },
+    });
+    let meta = meta.as_object();
+
+    assert_eq!(
+        openai_file_input_params_for_server(CODEX_APPS_MCP_SERVER_NAME, meta),
         None
     );
 }
