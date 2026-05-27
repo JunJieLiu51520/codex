@@ -373,7 +373,7 @@ mod tests {
             &base_url,
             &chatgpt_auth(),
             &path,
-            /* store_in_library */ false,
+            /*store_in_library*/ false,
         )
         .await
         .expect("upload succeeds");
@@ -439,7 +439,7 @@ mod tests {
             &base_url,
             &chatgpt_auth(),
             &path,
-            /* store_in_library */ true,
+            /*store_in_library*/ true,
         )
         .await
         .expect("upload succeeds");
