@@ -1208,7 +1208,7 @@ async fn system_remote_sandbox_config_keeps_cloud_sandbox_modes() -> anyhow::Res
     tokio::fs::write(
         &requirements_file,
         r#"
-[[remote_sandbox_config]]
+[remote_sandbox_config.any_host]
 hostname_patterns = ["*"]
 allowed_sandbox_modes = ["read-only", "workspace-write"]
 "#,
