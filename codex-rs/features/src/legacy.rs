@@ -55,10 +55,7 @@ pub(crate) fn feature_for_key(key: &str) -> Option<Feature> {
     ALIASES
         .iter()
         .find(|alias| alias.legacy_key == key)
-        .map(|alias| {
-            log_alias(alias.legacy_key, alias.feature);
-            alias.feature
-        })
+        .map(|alias| alias.feature)
 }
 
 #[derive(Debug, Default)]
