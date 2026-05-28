@@ -255,8 +255,35 @@ impl ToolRuntime<ApplyPatchRequest, ApplyPatchRuntimeOutput> for ApplyPatchRunti
             timed_out: false,
         };
         if failed && is_likely_sandbox_denied(attempt.sandbox, &output) {
+            // When the filesystem sandbox helper (e.g., bwrap) fails — commonly
+            // due to RTM_NEWADDR or nested namespace errors — enrich the output
+            // with a diagnostic hint so that the escalation path or user-facing
+            // error is actionable.
+            let mut enriched_output = output;
+            if enriched_output.stderr.text.to_lowercase().contains("bwrap")
+                || enriched_output
+                    .stderr
+                    .text
+                    .to_lowercase()
+                    .contains("rtm_newaddr")
+            {
+                let hint = concat!(
+                    "\n[codex] The filesystem sandbox helper (bwrap) failed, likely due to ",
+                    "restricted unprivileged user namespaces or nested sandboxing. ",
+                    "If this persists, try: (1) set sandbox_mode = \"none\" in your project ",
+                    "config, or (2) ensure /usr/bin/bwrap is available and allowed by AppArmor.",
+                );
+                enriched_output.stderr = StreamOutput::new(format!(
+                    "{}{}",
+                    enriched_output.stderr.text, hint
+                ));
+                enriched_output.aggregated_output = StreamOutput::new(format!(
+                    "{}{}",
+                    enriched_output.aggregated_output.text, hint
+                ));
+            }
             return Err(ToolError::Codex(CodexErr::Sandbox(SandboxErr::Denied {
-                output: Box::new(output),
+                output: Box::new(enriched_output),
                 network_policy_decision: None,
             })));
         }
