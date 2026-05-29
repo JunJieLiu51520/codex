@@ -193,13 +193,40 @@ fn install_network_seccomp_filter_on_current_thread(
             deny_syscall(&mut rules, libc::SYS_getpeername);
             deny_syscall(&mut rules, libc::SYS_getsockname);
             deny_syscall(&mut rules, libc::SYS_shutdown);
-            deny_syscall(&mut rules, libc::SYS_sendto);
-            deny_syscall(&mut rules, libc::SYS_sendmmsg);
             // NOTE: allowing recvfrom allows some tools like: `cargo clippy`
             // to run with their socketpair + child processes for sub-proc
             // management.
             // deny_syscall(&mut rules, libc::SYS_recvfrom);
             deny_syscall(&mut rules, libc::SYS_recvmmsg);
+
+            // For `sendto` we allow calls where dest_addr is NULL (addrlen ==
+            // 0, arg5), which corresponds to sends on connected sockets such
+            // as the AF_UNIX socketpairs that Python asyncio uses internally
+            // for cross-thread wakeups.  Calls with an explicit destination
+            // address (addrlen != 0) are blocked so that network-addressed
+            // sends remain denied.
+            //
+            // Seccomp BPF cannot dereference pointer arguments, so we cannot
+            // inspect the sa_family field of the sockaddr struct directly.
+            // Checking addrlen == 0 is the correct proxy: POSIX requires
+            // addrlen == 0 when dest_addr is NULL, and all real network
+            // destinations require a non-zero addrlen.
+            let sendto_network_rule = SeccompRule::new(vec![SeccompCondition::new(
+                5, // sixth argument: addrlen
+                SeccompCmpArgLen::Dword,
+                SeccompCmpOp::Ne,
+                0u64,
+            )?])?;
+            rules.insert(libc::SYS_sendto, vec![sendto_network_rule]);
+
+            // `sendmmsg` carries the destination address inside the mmsghdr
+            // struct (msg_name / msg_namelen), which BPF cannot dereference.
+            // Like `recvfrom`, we allow it unconditionally so that tools
+            // relying on AF_UNIX socketpairs (e.g. Python asyncio) continue
+            // to work.  Network access is still blocked by the `socket` /
+            // `connect` rules above, which prevent creation of and connection
+            // to network sockets in the first place.
+            // deny_syscall(&mut rules, libc::SYS_sendmmsg);
             deny_syscall(&mut rules, libc::SYS_getsockopt);
             deny_syscall(&mut rules, libc::SYS_setsockopt);
 
