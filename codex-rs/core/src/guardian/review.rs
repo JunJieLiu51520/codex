@@ -660,7 +660,16 @@ pub(super) async fn run_guardian_review_session(
             fallback
         }
     };
-    let preferred_model_id = turn.provider.approval_review_preferred_model();
+    // Prefer an explicitly configured review model (e.g. set via
+    // `review_model` in config.toml) so that custom-provider users can
+    // supply a model name their provider actually recognises.  Fall back
+    // to the provider's compile-time default ("codex-auto-review") only
+    // when no override is set.
+    let preferred_model_id = turn
+        .config
+        .review_model
+        .as_deref()
+        .unwrap_or_else(|| turn.provider.approval_review_preferred_model());
     let preferred_model = available_models
         .iter()
         .find(|preset| preset.model == preferred_model_id);
